@@ -1,5 +1,5 @@
 #pragma once
-#include "SelfDefWin.h"
+#include "SelfDefWinHeader.h"
 #include "SelfDefException.h"
 
 #include <optional>
@@ -15,7 +15,7 @@ private:
 		static const wchar_t* GetName() noexcept;
 		static HINSTANCE GetInstance() noexcept;
 	private:
-		WindowClass() noexcept;
+		WindowClass() ;
 		~WindowClass();
 		WindowClass(const WindowClass&) = delete;
 		WindowClass& operator=(const WindowClass&) = delete;//operator= is a function name
@@ -39,5 +39,29 @@ private:
 	int width;
 	int height;
 	HWND hWnd;
-};
 
+public:		//ERROR Handling
+	class Exception : public SelfDefException
+	{
+		using SelfDefException::SelfDefException;
+	public:
+		static std::string TranslateErrorCode(HRESULT hr) noexcept;
+	};
+	class HrException : public Exception
+	{
+	public:
+		HrException(int line, const char* file, HRESULT hr) noexcept;
+		const char* what() const noexcept override;
+		const char* GetType() const noexcept override;
+		HRESULT GetErrorCode() const noexcept;
+		std::string GetErrorDescription() const noexcept;
+	private:
+		HRESULT hr;
+	};
+	class NoGfxException : public Exception
+	{
+	public:
+		using Exception::Exception;
+		const char* GetType() const noexcept override;
+	};
+};

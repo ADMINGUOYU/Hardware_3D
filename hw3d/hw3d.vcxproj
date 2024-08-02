@@ -143,8 +143,9 @@
   <ItemGroup>
     <ClInclude Include="Application.h" />
     <ClInclude Include="SelfDefException.h" />
-    <ClInclude Include="SelfDefWin.h" />
+    <ClInclude Include="SelfDefWinHeader.h" />
     <ClInclude Include="Window.h" />
+    <ClInclude Include="WindowsThrowMacros.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

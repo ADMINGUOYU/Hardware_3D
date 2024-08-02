@@ -1,4 +1,4 @@
-#include "Window.h"
+#include "Application.h"
 
 int WINAPI WinMain(
     _In_ HINSTANCE hInstance,
@@ -6,15 +6,21 @@ int WINAPI WinMain(
     _In_ LPSTR lpCmdLine,
     _In_ int nShowCmd)
 {
-    Window* wnd = new Window(1280,720,L"HELLO_WORLD");
-	while (true)
+    try
+    {
+        return Application{ lpCmdLine }.Start();
+    }
+	catch (const SelfDefException& e)
 	{
-		// process all messages pending, but to not block for new messages
-		if (const auto ecode = Window::ProcessMessages())
-		{
-			// if return optional has value, means we're quitting so return exit code
-			return *ecode;
-		}
-		
+		MessageBoxA(nullptr, e.what(), e.GetType(), MB_OK | MB_ICONEXCLAMATION);
 	}
+	catch (const std::exception& e)
+	{
+		MessageBoxA(nullptr, e.what(), "Standard Exception", MB_OK | MB_ICONEXCLAMATION);
+	}
+	catch (...)
+	{
+		MessageBoxA(nullptr, "No details available", "Unknown Exception", MB_OK | MB_ICONEXCLAMATION);
+	}
+	return -1;
 }

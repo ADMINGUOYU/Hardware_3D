@@ -1,10 +1,11 @@
 #include "Window.h"
 #include <sstream>
+#include "WindowsThrowMacros.h"
 
 // Window Class Stuff
 Window::WindowClass Window::WindowClass::wndClass;
 
-Window::WindowClass::WindowClass() noexcept
+Window::WindowClass::WindowClass() 
 	:
 	hInst(GetModuleHandle(nullptr))
 {
@@ -43,16 +44,20 @@ HINSTANCE Window::WindowClass::GetInstance() noexcept
 Window::Window(int width, int height, const wchar_t* name)
 	:
 	width(width),
-	height(height)
+	height(height),
+	hWnd(nullptr)
 {
 	// calculate window size based on desired client region size
-	RECT wr;
+	RECT wr{};
 	wr.left = 100;
 	wr.right = width + wr.left;
 	wr.top = 100;
 	wr.bottom = height + wr.top;
-	AdjustWindowRect(&wr, WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU, FALSE) == 0;
-
+	if (AdjustWindowRect(&wr, WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU, FALSE) == 0)
+	{
+		throw SDWND_LAST_EXCEPT();
+	}
+	
 	// create window & get hWnd
 	HWND hWnd = CreateWindowEx(
 		0, WindowClass::GetName(),
@@ -61,9 +66,11 @@ Window::Window(int width, int height, const wchar_t* name)
 		CW_USEDEFAULT, CW_USEDEFAULT, wr.right - wr.left, wr.bottom - wr.top,
 		nullptr, nullptr, WindowClass::GetInstance(), this
 	);
-	
 	// check for error
-	
+	if (hWnd == nullptr)
+	{
+		throw SDWND_LAST_EXCEPT();
+	}
 	// newly created windows start off as hidden
 	ShowWindow(hWnd, SW_SHOWDEFAULT);
 	// Init ImGui Win32 Impl
@@ -82,7 +89,10 @@ Window::~Window()
 
 void Window::SetTitle(const std::wstring& title)
 {
-	SetWindowText(hWnd, title.c_str()) == 0;
+	if (SetWindowText(hWnd, title.c_str()) == 0)
+	{
+		throw SDWND_LAST_EXCEPT();
+	}
 }
 
 std::optional<int> Window::ProcessMessages() noexcept
@@ -172,4 +182,92 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) noe
 	}
 
 	return DefWindowProc(hWnd, msg, wParam, lParam);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Window Exception Stuff
+std::string Window::Exception::TranslateErrorCode(HRESULT hr) noexcept
+{
+	char* pMsgBuf = nullptr;
+	// windows will allocate memory for err string and make our pointer point to it
+	const DWORD nMsgLen = FormatMessageA(
+		FORMAT_MESSAGE_ALLOCATE_BUFFER |
+		FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+		nullptr, hr, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+		reinterpret_cast<LPSTR>(&pMsgBuf), 0, nullptr
+	);
+	// 0 string length returned indicates a failure
+	if (nMsgLen == 0)
+	{
+		return "Unidentified error code";
+	}
+	// copy error string from windows-allocated buffer to std::string
+	std::string errorString = pMsgBuf;
+	// free windows buffer
+	LocalFree(pMsgBuf);
+	return errorString;
+}
+
+
+Window::HrException::HrException(int line, const char* file, HRESULT hr) noexcept
+	:
+	Exception(line, file),
+	hr(hr)
+{}
+
+const char* Window::HrException::what() const noexcept
+{
+	std::ostringstream oss;
+	oss << GetType() << std::endl
+		<< "[Error Code] 0x" << std::hex << std::uppercase << GetErrorCode()
+		<< std::dec << " (" << (unsigned long)GetErrorCode() << ")" << std::endl
+		<< "[Description] " << GetErrorDescription() << std::endl
+		<< GetOriginString();
+	whatBuffer = oss.str();
+	return whatBuffer.c_str();
+}
+
+const char* Window::HrException::GetType() const noexcept
+{
+	return "SelfDefException: Window Exception";
+}
+
+HRESULT Window::HrException::GetErrorCode() const noexcept
+{
+	return hr;
+}
+
+std::string Window::HrException::GetErrorDescription() const noexcept
+{
+	return Exception::TranslateErrorCode(hr);
+}
+
+
+const char* Window::NoGfxException::GetType() const noexcept
+{
+	return "SelfDefException: Window Exception [No Graphics]";
 }
