@@ -1,6 +1,8 @@
 #pragma once
 #include "SelfDefWinHeader.h"
 #include "SelfDefException.h"
+#include "Keyboard.h"
+#include "Mouse.h"
 
 #include <optional>
 #include <memory>
@@ -30,17 +32,33 @@ public:
 	Window(const Window&) = delete;
 	Window& operator=(const Window&) = delete;
 	void SetTitle(const std::wstring& title);
+	void EnableCursor() noexcept;
+	void DisableCursor() noexcept;
+	bool CursorEnabled() const noexcept;
 	static std::optional<int> ProcessMessages() noexcept;
 private:
+	void ConfineCursor() noexcept;
+	void FreeCursor() noexcept;
+	void ShowCursor() noexcept;
+	void HideCursor() noexcept;
 	static LRESULT CALLBACK HandleMsgSetup(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) noexcept;
 	static LRESULT CALLBACK HandleMsgThunk(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) noexcept;
 	LRESULT HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) noexcept;
+public:
+	Keyboard kbd;
+	Mouse mouse;
 private:
+	bool cursorEnabled = true;
 	int width;
 	int height;
 	HWND hWnd;
 
-public:		//ERROR Handling
+	std::vector<BYTE> rawBuffer;
+	std::string commandLine;
+
+//_______________________________________________________________________________________________________________
+public:		
+	//ERROR Handling & reporting
 	class Exception : public SelfDefException
 	{
 		using SelfDefException::SelfDefException;

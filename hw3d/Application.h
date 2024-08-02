@@ -10,6 +10,8 @@ public:
 	~Application();		//de-constructor
 private:
 	void DoFrame(float dt);		//dt --> delta time --> interval between frames
+	void HandleInput(float dt);
+
 private:
 	std::string commandLine;
 	bool showDemoWindow = false;
